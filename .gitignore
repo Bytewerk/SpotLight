@@ -1,0 +1,8 @@
+# editor backup files
+*.swp
+
+# compililation products
+*.o
+*.hex
+*.elf
+*.bin
