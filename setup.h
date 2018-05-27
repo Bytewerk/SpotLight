@@ -2,8 +2,12 @@
 #define __setup_H__
 
 typedef enum {
-	eCanIdReset     = 0x123,
-	eCanIdSetAngles = 0x124
+	eCanIdSetAddress          = 0x200,
+	eCanIdSetPos              = 0x201,
+	eCanIdCalibrateUpperLimit = 0x202,
+	eCanIdCalibrateLowerLimit = 0x203,
+	eCanIdSetPosRaw           = 0x204,
+	eCanIdReset               = 0x205
 } canMsgs_e;
 
 
