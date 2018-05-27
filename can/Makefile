@@ -80,19 +80,19 @@ OBJDIR = build
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = mcp2515.c
-SRC += mcp2515_buffer.c
-SRC += mcp2515_get_message.c
-SRC += mcp2515_send_message.c
-SRC += mcp2515_set_dyn_filter.c
-SRC += mcp2515_get_dyn_filter.c
-SRC += mcp2515_static_filter.c
-SRC += mcp2515_write_id.c
-SRC += mcp2515_read_id.c
-SRC += mcp2515_error_register.c
-SRC += mcp2515_regdump.c
-SRC += mcp2515_set_mode.c
-SRC += mcp2515_sleep.c
+#SRC = mcp2515.c
+#SRC += mcp2515_buffer.c
+#SRC += mcp2515_get_message.c
+#SRC += mcp2515_send_message.c
+#SRC += mcp2515_set_dyn_filter.c
+#SRC += mcp2515_get_dyn_filter.c
+#SRC += mcp2515_static_filter.c
+#SRC += mcp2515_write_id.c
+#SRC += mcp2515_read_id.c
+#SRC += mcp2515_error_register.c
+#SRC += mcp2515_regdump.c
+#SRC += mcp2515_set_mode.c
+#SRC += mcp2515_sleep.c
 SRC += spi.c
 
 SRC += at90can.c
@@ -107,11 +107,11 @@ SRC += at90can_get_buf_message.c
 SRC += at90can_error_register.c
 SRC += at90can_set_mode.c
 
-SRC += sja1000.c
-SRC += sja1000_buffer.c
-SRC += sja1000_send_message.c
-SRC += sja1000_get_message.c
-SRC += sja1000_error_register.c
+#SRC += sja1000.c
+#SRC += sja1000_buffer.c
+#SRC += sja1000_send_message.c
+#SRC += sja1000_get_message.c
+#SRC += sja1000_error_register.c
 
 SRC += can_buffer.c
 

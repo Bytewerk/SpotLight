@@ -28,7 +28,7 @@
  */
 // ----------------------------------------------------------------------------
 
-#include "mcp2515_private.h"
+//#include "mcp2515_private.h"
 #ifdef	SUPPORT_FOR_MCP2515__
 
 #include "spi.h"
