@@ -38,5 +38,6 @@ clean:
 	rm *.o
 	rm *.elf
 	rm *.hex
+	rm *.bin
 
 .PHONY: doc clean
