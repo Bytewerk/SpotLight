@@ -29,7 +29,9 @@ $(BR)/$(BINARY).bin: $(BR)/$(BINARY).elf
 
 
 flash:
-	avrdude -c mcprog -p m16m1 -x clockrate=125000  -U flash:w:$(TARGET).hex
+#	avrdude -c mcprog   -p m16m1 -x clockrate=125000  -U flash:w:$(TARGET).hex
+#	avrdude -v -c usbasp -p m16m1 -U flash:w:$(TARGET).hex
+	avrdude -B 0.1 -v -c usbtiny -p m16m1 -U flash:w:$(TARGET).hex
 
 fuse:
 	python2 megaHidProg.py -C -S -c 125 -L FF -H D9 -E F
@@ -39,6 +41,6 @@ clean:
 	rm *.elf
 	rm *.hex
 	rm *.bin
-	rm can/*.a
+#	rm can/*.a
 
 .PHONY: doc clean
