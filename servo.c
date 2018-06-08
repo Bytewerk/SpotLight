@@ -1,5 +1,7 @@
-#include <avr/interrupt.h>
 #include <stdint.h>
+#include <avr/interrupt.h>
+#include <util/atomic.h>
+#include "setup.h"
 #include "servo.h"
 
 
@@ -9,58 +11,94 @@ typedef struct servo_calibration {
 	uint16_t upperLimit;
 } servo_t;
 
-servo_t s1, s2;
+servo_t servo_p, servo_y;
 
 
 
 void servo_init( void ) {
-	s1.lowerLimit = 0;
-	s2.lowerLimit = 0;
-	s1.upperLimit = 0xFFFF;
-	s1.upperLimit = 0xFFFF;
+	DDRD  |= (1<<PD2); // OCR1A
+	DDRC  |= (1<<PC1); // OCR1B
+
+	servo_activate( );
+
+	servo_p.lowerLimit = 0x0500;
+	servo_p.upperLimit = 0x0F00;
+
+	servo_y.lowerLimit = 0x0370;
+	servo_y.upperLimit = 0x10F0;
+
 
 	// setup timer 1 for servo PWM output
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		TCCR1C = 0; // must be 0
 
-	TCCR1C = 0; // must be 0
+		TIMSK1 = (1<<FOC1A)|(1<<FOC1B);
 
-	OCR1A = 500;
-	OCR1B = 500;
+		// pwm output for servos (16 bit fast PWM)
+		TCCR1A  = (1<<COM1A1); // pin goes high on reset and low on compare match
+		TCCR1A |= (1<<COM1B0)|(1<<COM1B1); // pin goes low on reset and high on compare match
+		TCCR1A |= (1<<WGM11); // 16 bit fast PWM
+		TCCR1B  = (1<<WGM12)|(1<<WGM13); // 16 bit fast PWM (continued) (ICR1=TOP)
+		TCCR1B |= (1<<CS11); // clockdivider F_CPU / 8
 
-	TIMSK1 = 0;
+		ICR1 = 40000; // 20 ms duty cycle
 
-	TCCR1A  = (1<<WGM11)  | (1<<WGM10);// 10 bit fast PWM
-	TCCR1A |= (1<<COM1A1) | (1<<COM1B1); // clear on match, start low
-
-	TCCR1B  = (1<<CS11) | (1<<CS10); // clockdivider F_CPU / 64
-	TCCR1B |= (1<<WGM12); // 10 bit fast PWM (continued)
+		OCR1A = servo_p.lowerLimit + (servo_p.upperLimit - servo_p.lowerLimit) / 2; // 1.5 ms is default
+		OCR1B = servo_y.lowerLimit + (servo_y.upperLimit - servo_y.lowerLimit) / 2; // 1.5 ms is default
+	}
 }
 
 
 
 void servo_calibrateLowerLimit( void ) {
-	s1.lowerLimit = OCR1A;
-	s2.lowerLimit = OCR1B;
+	// make sure upper and lower limit are not inverted
+	if( OCR1A > servo_p.upperLimit ) {
+		servo_p.lowerLimit = servo_p.upperLimit;
+	}
+	else {
+		servo_p.lowerLimit = OCR1A;
+	}
+
+	if( OCR1B > servo_y.upperLimit ) {
+		servo_y.lowerLimit = servo_y.upperLimit;
+	}
+	else {
+		servo_y.lowerLimit = OCR1B;
+	}
 }
 
 void servo_calibrateUpperLimit( void ) {
-	s1.upperLimit = OCR1A;
-	s2.upperLimit = OCR1B;
+	// make sure upper and lower limit are not inverted
+	if( OCR1A < servo_p.lowerLimit ) {
+		servo_p.upperLimit = servo_p.lowerLimit;
+	}
+	else {
+		servo_p.upperLimit = OCR1A;
+	}
+
+	if( OCR1B < servo_y.lowerLimit ) {
+		servo_y.upperLimit = servo_y.lowerLimit;
+	}
+	else {
+		servo_y.upperLimit = OCR1B;
+	}
 }
 
 
 
 void servo_setValue( uint8_t servoId, uint8_t value ) {
 	uint16_t range;
-	uint16_t scaleFactor;
 
 	switch( servoId ) {
-		case 0: {
-			range = s1.upperLimit - s1.lowerLimit;
-			OCR1A = range * scaleFactor;
+		case ePitch: {
+			range = servo_p.upperLimit - servo_p.lowerLimit;
+			OCR1B = servo_p.lowerLimit + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
-		case 1: {
+		case eYaw: {
+			range = servo_y.upperLimit - servo_y.lowerLimit;
+			OCR1A = servo_y.lowerLimit + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
@@ -68,4 +106,61 @@ void servo_setValue( uint8_t servoId, uint8_t value ) {
 			break;
 		}
 	}
+}
+
+
+
+void servo_setRawValue( uint8_t servoId, uint16_t value ) {
+	switch( servoId ) {
+		case ePitch: {
+			OCR1B = value;
+			break;
+		}
+
+		case eYaw: {
+			OCR1A = value;
+			break;
+		}
+
+		default: {
+			break;
+		}
+	}
+}
+
+
+
+uint16_t servo_getRawValue( uint8_t servoId ) {
+	uint16_t tmp = 0xFFFF;
+
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		switch( servoId ) {
+			case ePitch: {
+				tmp = OCR1B;
+			}
+
+			case eYaw: {
+				tmp = OCR1A;
+			}
+
+			default: {
+				break;
+			}
+		}
+	}
+	return tmp;
+}
+
+
+
+void servo_activate( void ) {
+	DDRB  |= (1<<PB6); // servo power FET
+	PORTB |= (1<<PB6); // activate servos
+}
+
+
+
+void servo_deActivate( void ) {
+	DDRB  |=  (1<<PB6); // servo power FET
+	PORTB &= ~(1<<PB6); // activate servos
 }
