@@ -30,6 +30,15 @@ typedef enum {
 } retCode_e;
 
 
+
+typedef enum {
+	ePitch      = 0, // OCR1B
+	eYaw        = 1, // OCR1A
+	eBrightness = 2
+} pos_e;
+
+
+
 #else
 #error "double include of setup.h"
 #endif

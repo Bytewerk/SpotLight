@@ -23,13 +23,11 @@
 
 void can_parse_msgs( can_t *msg );
 void send_heartbeat( void );
-
-
+void updateLampState( void );
+void lamp_setBrightness( uint8_t brightness );
 
 typedef struct {
 	uint32_t hwId;
-	uint16_t yawRaw;
-	uint16_t pitchRaw;
 	uint8_t  yaw;
 	uint8_t  pitch;
 	uint8_t  brightness;
@@ -37,9 +35,8 @@ typedef struct {
 
 
 
-
-config_t config;
 status_t state;
+
 
 
 int main( void ) {
@@ -48,16 +45,20 @@ int main( void ) {
 	static uint32_t lastHeartbeat = 0;
 
 	wdt_disable();
+
 	timer_init();
 	servo_init();
 	bw_can_init( 500 /*kbit*/ );
 	sei();
 
-	bw_led_set( 1, 0 );
-	bw_led_set( 0, 1 );
-
-	DDRD |= (1<<PD2);
 	wdt_enable( WDTO_250MS );
+
+	bw_led_set( 1, 0 );
+	bw_led_set( 0, 0 );
+
+	state.pitch      = 0;
+	state.yaw        = 0;
+	state.brightness = 0;
 
 	while( 1 ) {
 		wdt_reset();
@@ -66,15 +67,15 @@ int main( void ) {
 		while( can_check_message() ) {
 			can_get_message( &msgRx );
 			can_parse_msgs( &msgRx );
-			bw_led_toggle( 0 );
 		}
 
 
 		if( lastHeartbeat + 100 < now ) {
 			lastHeartbeat = now;
 			send_heartbeat();
-			bw_led_toggle( 1 );
+			bw_led_toggle( 0 );
 		}
+
 	}
 }
 
@@ -93,17 +94,25 @@ void can_parse_msgs( can_t *msgRx ) {
 		}
 
 		case eCanIdSetPosRaw: { // <pitch(16)><yaw(16)><brightness(8)>
-			state.pitchRaw   = (msgRx->data[1]<<8) + msgRx->data[0];
-			state.yawRaw     = (msgRx->data[2]<<8) + msgRx->data[3];
+			uint16_t pitch = ((uint16_t)msgRx->data[0]<<8) + msgRx->data[1];
+			uint16_t yaw   = ((uint16_t)msgRx->data[2]<<8) + msgRx->data[3];
 			state.brightness = msgRx->data[4];
+
+			servo_setRawValue( ePitch, pitch );
+			servo_setRawValue( eYaw,   yaw );
+
+			lamp_setBrightness( state.brightness );
+			bw_led_toggle( 1 );
 			break;
 		}
 
 		case eCanIdCalibrateUpperLimit: { // no data
+			servo_calibrateUpperLimit();
 			break;
 		}
 
 		case eCanIdCalibrateLowerLimit: { // no data
+			servo_calibrateLowerLimit();
 			break;
 		}
 
@@ -111,6 +120,8 @@ void can_parse_msgs( can_t *msgRx ) {
 			state.pitch      = msgRx->data[0];
 			state.yaw        = msgRx->data[1];
 			state.brightness = msgRx->data[2];
+
+			updateLampState();
 			break;
 		}
 
@@ -122,26 +133,45 @@ void can_parse_msgs( can_t *msgRx ) {
 
 
 
-retCode_e servo_setR( uint16_t requestedR ) {
-	if( requestedR < config.rMin ) {
-		return eErrorInvalidInput;
-	}
-	if( requestedR > config.rMax ) {
-		return eErrorInvalidInput;
-	}
+void updateLampState( void ) {
+	servo_setValue( ePitch, state.pitch );
+	servo_setValue( eYaw,   state.yaw );
+	lamp_setBrightness( state.brightness ); // NOTE: only ON/OFF supported yet
+}
 
-	return eOK;
+
+
+void lamp_setBrightness( uint8_t brightness ) {
+	DDRD  |= (1<<PD7);
+	if( brightness ) {
+		PORTD |= (1<<PD7);
+	}
+	else {
+		PORTD &= ~(1<<PD7);
+	}
 }
 
 
 
 void send_heartbeat( void ) {
 	can_t msgTx;
+	uint16_t p = servo_getRawValue( ePitch );
+	uint16_t y = servo_getRawValue( eYaw );
+
 
 	msgTx.id = 0x200;
-	msgTx.length = 0; // no data
+	msgTx.length = 8;
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
+
+	msgTx.data[0] = state.pitch;
+	msgTx.data[1] = state.yaw;
+	msgTx.data[2] = state.brightness;
+	msgTx.data[3] = 0;
+	msgTx.data[4] = (p >> 8) & 0xFF;
+	msgTx.data[5] = p & 0xFF;
+	msgTx.data[6] = (y >> 8) & 0xFF;
+	msgTx.data[7] = y & 0xFF;
 
 	can_send_message( &msgTx );
 }

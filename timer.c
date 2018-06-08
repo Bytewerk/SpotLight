@@ -37,25 +37,12 @@ void timer_init(void) {
 	timer_time = 0;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+
 		// timebase: 1000 Hz
 		TCCR0A = (1<<WGM01);
 		TCCR0B = (1<<CS01)|(1<<CS00);
 		OCR0A = 249;
 		TIMSK0 |= (1<<OCIE0A);
-
-		// pwm output for servos
-		TCCR1A =  (1<<COM1A1)|(1<<COM1B1); // pin goes high on compare match
-		TCCR1A |= (1<<WGM11)|(1<<WGM10); // 10 bit fast PWM
-
-		TCCR1B =  (1<<WGM12); // 10 bit fast PWM (continued)
-		TCCR1B |= (1<<CS12); // clockdivider F_CPU / 256
-//		TCCR1B |= (1<<CS11)|(1<<CS10); // clockdivider F_CPU / 256
-		// (16*10^6 Hz)/(256[clkdiv] * 1024[pwm top value]) = 61 Hz
-
-		OCR1A = 0x01FF;
-		OCR1B = 0x01FF;
-
-//		TIMSK1 |= (1<<OCIE1A);//|(1<<OCIE1B);
 	}
 }
 
