@@ -48,7 +48,7 @@ status_t state;
 int main( void ) {
 	can_t msgRx;
 	uint32_t now;
-	static uint32_t lastHeartbeat = 0;
+	uint32_t lastHeartbeat = 0;
 
 	wdt_disable();
 
@@ -177,7 +177,7 @@ void can_parse_msgs( can_t *msgRx ) {
 void updateLampState( void ) {
 	servo_setValue( ePitch, state.pitch );
 	servo_setValue( eYaw,   state.yaw );
-	lamp_setBrightness( state.brightness ); // NOTE: only ON/OFF supported yet
+	lamp_setBrightness( state.brightness ); // NOTE: only ON/OFF supported
 }
 
 
