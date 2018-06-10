@@ -26,11 +26,17 @@ void send_heartbeat( void );
 void updateLampState( void );
 void lamp_setBrightness( uint8_t brightness );
 
+
+
 typedef struct {
-	uint32_t hwId;
+	uint32_t canBaseAddress;
+	uint32_t lastChangedPosition;
 	uint8_t  yaw;
 	uint8_t  pitch;
 	uint8_t  brightness;
+	uint8_t  lastYaw;
+	uint8_t  lastPitch;
+	uint8_t  lastBrightness;
 } status_t;
 
 
@@ -53,12 +59,17 @@ int main( void ) {
 
 	wdt_enable( WDTO_250MS );
 
-	bw_led_set( 1, 0 );
-	bw_led_set( 0, 0 );
+	bw_led_set( eNetworkLed,   0 );
+	bw_led_set( eHeartBeatLed, 0 );
 
+	state.canBaseAddress = eCanBaseAddress;
 	state.pitch      = 0;
 	state.yaw        = 0;
 	state.brightness = 0;
+	state.lastPitch  = 0;
+	state.lastYaw    = 0;
+	state.lastBrightness = 0;
+	state.lastChangedPosition = 0;
 
 	while( 1 ) {
 		wdt_reset();
@@ -71,17 +82,36 @@ int main( void ) {
 
 
 		if( lastHeartbeat + 100 < now ) {
+			bw_led_toggle( eHeartBeatLed );
 			lastHeartbeat = now;
 			send_heartbeat();
-			bw_led_toggle( 0 );
 		}
 
-	}
+		if( state.lastChangedPosition + eServoSleepDelay < now ) {
+			bw_led_set( eNetworkLed, 0 ); // network LED
+			servo_disable();
+		}
+		else {
+			bw_led_set( eNetworkLed, 1 ); // network LED
+			servo_enable();
+			updateLampState();
+		}
+
+	} // while(1)
 }
 
 
 
 void can_parse_msgs( can_t *msgRx ) {
+	uint32_t now;
+
+	if( (msgRx->id & 0x0F00) != state.canBaseAddress ) {
+		return;
+		// not our message
+	}
+
+	now = timer_getMs();
+
 	switch( msgRx->id ) {
 		case eCanIdReset: {
 			while(1); // wait for watchdog to reset
@@ -89,20 +119,22 @@ void can_parse_msgs( can_t *msgRx ) {
 		}
 
 		case eCanIdSetAddress: { // <HWId(32le)>
-			state.hwId = ((uint32_t)msgRx->data[3]<<24) + ((uint32_t)msgRx->data[2]<<16) + ((uint32_t)msgRx->data[1]<<8) + msgRx->data[0];
+			state.canBaseAddress = ((uint32_t)msgRx->data[3]<<24) + ((uint32_t)msgRx->data[2]<<16) + ((uint32_t)msgRx->data[1]<<8) + msgRx->data[0];
 			break;
 		}
 
 		case eCanIdSetPosRaw: { // <pitch(16)><yaw(16)><brightness(8)>
+			// this is for debug and calibration purposes only
 			uint16_t pitch = ((uint16_t)msgRx->data[0]<<8) + msgRx->data[1];
 			uint16_t yaw   = ((uint16_t)msgRx->data[2]<<8) + msgRx->data[3];
 			state.brightness = msgRx->data[4];
 
+			servo_enable();
 			servo_setRawValue( ePitch, pitch );
 			servo_setRawValue( eYaw,   yaw );
 
 			lamp_setBrightness( state.brightness );
-			bw_led_toggle( 1 );
+			state.lastChangedPosition = now;
 			break;
 		}
 
@@ -121,7 +153,16 @@ void can_parse_msgs( can_t *msgRx ) {
 			state.yaw        = msgRx->data[1];
 			state.brightness = msgRx->data[2];
 
-			updateLampState();
+			if( (state.lastPitch != state.pitch) ||
+				(state.lastYaw != state.yaw) ||
+				(state.lastBrightness != state.brightness)
+			) {
+				state.lastChangedPosition = now;
+			}
+
+			state.lastPitch      = state.pitch;
+			state.lastYaw        = state.yaw;
+			state.lastBrightness = state.brightness;
 			break;
 		}
 
@@ -159,7 +200,7 @@ void send_heartbeat( void ) {
 	uint16_t y = servo_getRawValue( eYaw );
 
 
-	msgTx.id = 0x200;
+	msgTx.id = eCanIdHeartbeat;
 	msgTx.length = 8;
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
