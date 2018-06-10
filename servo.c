@@ -117,10 +117,12 @@ uint16_t servo_getRawValue( uint8_t servoId ) {
 		switch( servoId ) {
 			case ePitch: {
 				tmp = OCR1B;
+				break;
 			}
 
 			case eYaw: {
 				tmp = OCR1A;
+				break;
 			}
 
 			default: {
