@@ -2,12 +2,13 @@
 #define __setup_H__
 
 typedef enum {
-	eCanIdSetAddress          = 0x200,
-	eCanIdSetPos              = 0x201,
-	eCanIdCalibrateUpperLimit = 0x202,
-	eCanIdCalibrateLowerLimit = 0x203,
-	eCanIdSetPosRaw           = 0x204,
-	eCanIdReset               = 0x205
+	eCanIdHeartbeat           = 0x0200,
+	eCanIdSetPos              = 0x0201,
+	eCanIdCalibrateUpperLimit = 0x0202,
+	eCanIdCalibrateLowerLimit = 0x0203,
+	eCanIdSetPosRaw           = 0x0204,
+	eCanIdReset               = 0x0205,
+	eCanIdSetAddress          = 0x0206
 } canMsgs_e;
 
 
@@ -16,6 +17,7 @@ typedef enum {
 // they are overwritten by what's stored
 // in the eeprom
 typedef struct {
+	uint32_t canBaseAddress;
 	uint16_t rMin;
 	uint16_t rMax;
 	uint16_t pMin;
@@ -25,18 +27,20 @@ typedef struct {
 
 
 typedef enum {
-	eOK                =  0,
-	eErrorInvalidInput = -1
-} retCode_e;
+	ePitch        = 0, // OCR1B
+	eYaw          = 1, // OCR1A
+	eBrightness   = 2, // PD7
+	eNetworkLed   = 1, // blue led
+	eHeartBeatLed = 0  // green led
+} actor_e;
 
 
 
 typedef enum {
-	ePitch      = 0, // OCR1B
-	eYaw        = 1, // OCR1A
-	eBrightness = 2
-} pos_e;
-
+	eServoSleepDelay = 2000, // ms
+	eCanBaseAddress  = 0x200
+}
+delays_e;
 
 
 #else
