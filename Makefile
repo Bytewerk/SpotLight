@@ -34,7 +34,8 @@ flash:
 	avrdude -B 0.1 -v -c usbtiny -p m16m1 -U flash:w:$(TARGET).hex
 
 fuse:
-	python2 megaHidProg.py -C -S -c 125 -L FF -H D9 -E F
+	avrdude -B 100 -v -c usbtiny -p m16m1 -U lfuse:w:0xff:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
+#	python2 megaHidProg.py -C -S -c 125 -L FF -H D9 -E F
 
 clean:
 	rm *.o
