@@ -31,6 +31,7 @@ void lamp_setBrightness( uint8_t brightness );
 typedef struct {
 	uint32_t canBaseAddress;
 	uint32_t lastChangedPosition;
+	uint8_t  servoPwmActive;
 	uint8_t  yaw;
 	uint8_t  pitch;
 	uint8_t  brightness;
@@ -70,6 +71,7 @@ int main( void ) {
 	state.lastYaw    = 0;
 	state.lastBrightness = 0;
 	state.lastChangedPosition = 0;
+	state.servoPwmActive = 1;
 
 	while( 1 ) {
 		wdt_reset();
@@ -80,7 +82,6 @@ int main( void ) {
 			can_parse_msgs( &msgRx );
 		}
 
-
 		if( lastHeartbeat + 100 < now ) {
 			bw_led_toggle( eHeartBeatLed );
 			lastHeartbeat = now;
@@ -88,14 +89,21 @@ int main( void ) {
 		}
 
 		if( state.lastChangedPosition + eServoSleepDelay < now ) {
-			bw_led_set( eNetworkLed, 0 ); // network LED
-			servo_disable();
+			if( state.servoPwmActive ) {
+				servo_disable();
+				state.servoPwmActive = 0;
+				bw_led_set( eNetworkLed, 0 );
+			}
 		}
 		else {
-			bw_led_set( eNetworkLed, 1 ); // network LED
-			servo_enable();
+			if( !state.servoPwmActive ) {
+				servo_enable();
+				state.servoPwmActive = 1;
+			}
+			bw_led_set( eNetworkLed, 1 );
 			updateLampState();
 		}
+
 
 	} // while(1)
 }
@@ -127,14 +135,14 @@ void can_parse_msgs( can_t *msgRx ) {
 			// this is for debug and calibration purposes only
 			uint16_t pitch = ((uint16_t)msgRx->data[0]<<8) + msgRx->data[1];
 			uint16_t yaw   = ((uint16_t)msgRx->data[2]<<8) + msgRx->data[3];
-			state.brightness = msgRx->data[4];
+			uint8_t  brightness = msgRx->data[4];
 
 			servo_enable();
+
 			servo_setRawValue( ePitch, pitch );
 			servo_setRawValue( eYaw,   yaw );
 
-			lamp_setBrightness( state.brightness );
-			state.lastChangedPosition = now;
+			lamp_setBrightness( brightness );
 			break;
 		}
 
