@@ -31,11 +31,10 @@ void can_parse_msgs( can_t *msg );
 void send_heartbeat( void );
 void updateLampState( void );
 void lamp_setBrightness( uint8_t brightness );
-
-
+void send_responseCode( uint8_t responseCode );
+void send_config( void );
 
 typedef struct {
-	uint32_t canBaseAddress;
 	uint32_t lastChangedPosition;
 	uint8_t  servoPwmActive;
 	uint8_t  yaw;
@@ -49,7 +48,7 @@ typedef struct {
 
 
 status_t state;
-
+config_t config;
 
 
 int main( void ) {
@@ -69,7 +68,8 @@ int main( void ) {
 	bw_led_set( eNetworkLed,   0 );
 	bw_led_set( eHeartBeatLed, 0 );
 
-	state.canBaseAddress = eCanBaseAddress;
+	eeprom_readConfig();
+
 	state.pitch      = 0;
 	state.yaw        = 0;
 	state.brightness = 0;
@@ -78,6 +78,8 @@ int main( void ) {
 	state.lastBrightness = 0;
 	state.lastChangedPosition = 0;
 	state.servoPwmActive = 1;
+
+	send_config(); // tx config from eeprom for debugging
 
 	while( 1 ) {
 		wdt_reset();
@@ -98,7 +100,7 @@ int main( void ) {
 			if( state.servoPwmActive ) {
 				servo_disable();
 				state.servoPwmActive = 0;
-				bw_led_set( eNetworkLed, 0 );
+	//			bw_led_set( eNetworkLed, 0 );
 			}
 		}
 		else {
@@ -106,7 +108,7 @@ int main( void ) {
 				servo_enable();
 				state.servoPwmActive = 1;
 			}
-			bw_led_set( eNetworkLed, 1 );
+//			bw_led_set( eNetworkLed, 1 );
 			updateLampState();
 		}
 
@@ -119,21 +121,27 @@ int main( void ) {
 void can_parse_msgs( can_t *msgRx ) {
 	uint32_t now;
 
-	if( (msgRx->id & 0x0F00) != state.canBaseAddress ) {
-		return;
-		// not our message
+	uint16_t requestedId   = (msgRx->id & 0x02F0);
+	uint16_t expectedId    = eCanIdHeartbeat + (config.data.hwId << 4);
+	uint16_t maskedCommand = (msgRx->id & 0x000F) | eCanIdHeartbeat;
+
+	if( requestedId != expectedId ) {
+		return; // not our message
 	}
 
 	now = timer_getMs();
 
-	switch( msgRx->id ) {
+	switch( maskedCommand ) {
 		case eCanIdReset: {
+			send_responseCode( eCanIdReset & 0xFF );
+
 			while(1); // wait for watchdog to reset
 			break;
 		}
 
-		case eCanIdSetAddress: { // <HWId(32le)>
-			state.canBaseAddress = ((uint32_t)msgRx->data[3]<<24) + ((uint32_t)msgRx->data[2]<<16) + ((uint32_t)msgRx->data[1]<<8) + msgRx->data[0];
+		case eCanIdSetAddress: { // <HWId(8)>
+			config.data.hwId = msgRx->data[0];
+			send_responseCode( eCanIdSetAddress & 0xFF );
 			break;
 		}
 
@@ -149,16 +157,19 @@ void can_parse_msgs( can_t *msgRx ) {
 			servo_setRawValue( eYaw,   yaw );
 
 			lamp_setBrightness( brightness );
+			send_responseCode( eCanIdSetPosRaw & 0xFF );
 			break;
 		}
 
 		case eCanIdCalibrateUpperLimit: { // no data
 			servo_calibrateUpperLimit();
+			send_responseCode( eCanIdCalibrateUpperLimit & 0xFF );
 			break;
 		}
 
 		case eCanIdCalibrateLowerLimit: { // no data
 			servo_calibrateLowerLimit();
+			send_responseCode( eCanIdCalibrateLowerLimit & 0xFF );
 			break;
 		}
 
@@ -177,10 +188,24 @@ void can_parse_msgs( can_t *msgRx ) {
 			state.lastPitch      = state.pitch;
 			state.lastYaw        = state.yaw;
 			state.lastBrightness = state.brightness;
+			send_responseCode( eCanIdSetPos & 0xFF );
+			break;
+		}
+
+		case eCanIdStoreConfigEEPROM: {
+			eeprom_writeConfig();
+			send_responseCode( eCanIdStoreConfigEEPROM & 0xFF );
+			break;
+		}
+
+		case eCanIdRequestConfig: {
+			send_config();
+			send_responseCode( eCanIdRequestConfig & 0xFF );
 			break;
 		}
 
 		default: {
+			send_responseCode( 0xFF );
 			break;
 		}
 	}
@@ -212,7 +237,7 @@ void send_heartbeat( void ) {
 	can_t msgTx;
 
 	msgTx.id = eCanIdHeartbeat;
-	msgTx.length = 8;
+	msgTx.length = 6;
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
 
@@ -225,4 +250,47 @@ void send_heartbeat( void ) {
 
 
 	can_send_message( &msgTx );
+}
+
+
+
+void send_responseCode( uint8_t responseCode ) {
+	can_t msgTx;
+
+	msgTx.id = eCanIdResponse;
+	msgTx.length = 1;
+	msgTx.flags.rtr = 0;
+	msgTx.flags.extended = 0;
+
+	msgTx.data[0] = responseCode;
+
+
+	can_send_message( &msgTx );
+}
+
+
+
+void send_config( void ) {
+	can_t msgTx;
+
+	msgTx.id = eCanIdSendConfig;
+	msgTx.flags.rtr = 0;
+	msgTx.flags.extended = 0;
+
+	msgTx.length = 2;
+	msgTx.data[0] = (config.data.inUseMarker);
+	msgTx.data[1] = (config.data.hwId);
+	can_send_message( &msgTx );
+
+	msgTx.length = 8;
+	msgTx.data[0] = (config.data.pMin)>>8;
+	msgTx.data[1] = (config.data.pMin);
+	msgTx.data[2] = (config.data.pMax)>>8;
+	msgTx.data[3] = (config.data.pMax);
+	msgTx.data[4] = (config.data.yMin)>>8;
+	msgTx.data[5] = (config.data.yMin);
+	msgTx.data[6] = (config.data.yMax)>>8;
+	msgTx.data[7] = (config.data.yMax);
+	can_send_message( &msgTx );
+
 }

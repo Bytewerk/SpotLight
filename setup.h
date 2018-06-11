@@ -8,7 +8,11 @@ typedef enum {
 	eCanIdCalibrateLowerLimit = 0x0203,
 	eCanIdSetPosRaw           = 0x0204,
 	eCanIdReset               = 0x0205,
-	eCanIdSetAddress          = 0x0206
+	eCanIdSetAddress          = 0x0206,
+	eCanIdStoreConfigEEPROM   = 0x0207,
+	eCanIdResponse            = 0x0208,
+	eCanIdSendConfig          = 0x0209,
+	eCanIdRequestConfig       = 0x020A
 } canMsgs_e;
 
 
@@ -16,12 +20,18 @@ typedef enum {
 // these are the default settings
 // they are overwritten by what's stored
 // in the eeprom
-typedef struct {
-	uint32_t canBaseAddress;
-	uint16_t rMin;
-	uint16_t rMax;
-	uint16_t pMin;
-	uint16_t pMax;
+#define EEPROM_CONFIG_ADDR (0x0080)
+typedef union {
+	struct {
+		uint8_t  inUseMarker;
+		uint8_t  hwId;
+		uint16_t pMin;
+		uint16_t pMax;
+		uint16_t yMin;
+		uint16_t yMax;
+	} data;
+
+	uint8_t raw[10];
 } config_t;
 
 

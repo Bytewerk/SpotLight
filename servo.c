@@ -6,61 +6,68 @@
 
 
 
+extern config_t config;
+
+
+/*
 typedef struct servo_calibration {
 	uint16_t lowerLimit;
 	uint16_t upperLimit;
 } servo_t;
-
 servo_t servo_p, servo_y;
+*/
 
 
 
 void servo_init( void ) {
-	servo_p.lowerLimit = 0x0500;
-	servo_p.upperLimit = 0x0F00;
+/*
+	config.data.pMin = 0x0500;
+	config.data.pMax = 0x0F00;
 
-	servo_y.lowerLimit = 0x0370;
-	servo_y.upperLimit = 0x10F0;
+	config.data.yMin = 0x0370;
+	config.data.yMax = 0x10F0;
+*/
+	
 
 	servo_enable();
 
-	OCR1A = servo_p.lowerLimit + (servo_p.upperLimit - servo_p.lowerLimit) / 2; // 1.5 ms is default
-	OCR1B = servo_y.lowerLimit + (servo_y.upperLimit - servo_y.lowerLimit) / 2; // 1.5 ms is default
+	OCR1A = config.data.pMin + (config.data.pMax - config.data.pMin) / 2; // 1.5 ms is default
+	OCR1B = config.data.yMin + (config.data.yMax - config.data.yMin) / 2; // 1.5 ms is default
 }
 
 
 
 void servo_calibrateLowerLimit( void ) {
 	// make sure upper and lower limit are not inverted
-	if( OCR1A > servo_p.upperLimit ) {
-		servo_p.lowerLimit = servo_p.upperLimit;
+	if( OCR1A > config.data.pMax ) {
+		config.data.pMin = config.data.pMax;
 	}
 	else {
-		servo_p.lowerLimit = OCR1A;
+		config.data.pMin = OCR1A;
 	}
 
-	if( OCR1B > servo_y.upperLimit ) {
-		servo_y.lowerLimit = servo_y.upperLimit;
+	if( OCR1B > config.data.yMax ) {
+		config.data.yMin = config.data.yMax;
 	}
 	else {
-		servo_y.lowerLimit = OCR1B;
+		config.data.yMin = OCR1B;
 	}
 }
 
 void servo_calibrateUpperLimit( void ) {
 	// make sure upper and lower limit are not inverted
-	if( OCR1A < servo_p.lowerLimit ) {
-		servo_p.upperLimit = servo_p.lowerLimit;
+	if( OCR1A < config.data.pMin ) {
+		config.data.pMax = config.data.pMin;
 	}
 	else {
-		servo_p.upperLimit = OCR1A;
+		config.data.pMax = OCR1A;
 	}
 
-	if( OCR1B < servo_y.lowerLimit ) {
-		servo_y.upperLimit = servo_y.lowerLimit;
+	if( OCR1B < config.data.yMin ) {
+		config.data.yMax = config.data.yMin;
 	}
 	else {
-		servo_y.upperLimit = OCR1B;
+		config.data.yMax = OCR1B;
 	}
 }
 
@@ -71,14 +78,14 @@ void servo_setValue( uint8_t servoId, uint8_t value ) {
 
 	switch( servoId ) {
 		case ePitch: {
-			range = servo_p.upperLimit - servo_p.lowerLimit;
-			OCR1B = servo_p.lowerLimit + (((uint32_t)range * (uint32_t)value) / 0xff);
+			range = config.data.pMax - config.data.pMin;
+			OCR1B = config.data.pMin + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
 		case eYaw: {
-			range = servo_y.upperLimit - servo_y.lowerLimit;
-			OCR1A = servo_y.lowerLimit + (((uint32_t)range * (uint32_t)value) / 0xff);
+			range = config.data.yMax - config.data.yMin;
+			OCR1A = config.data.yMin + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
