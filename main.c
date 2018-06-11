@@ -18,6 +18,12 @@
 #include "byteworker.h"
 #include "timer.h"
 #include "servo.h"
+#include "eeprom.h"
+
+
+
+#define VERSION_MAJOR (0)
+#define VERSION_MINOR (3)
 
 
 
@@ -204,9 +210,6 @@ void lamp_setBrightness( uint8_t brightness ) {
 
 void send_heartbeat( void ) {
 	can_t msgTx;
-	uint16_t p = servo_getRawValue( ePitch );
-	uint16_t y = servo_getRawValue( eYaw );
-
 
 	msgTx.id = eCanIdHeartbeat;
 	msgTx.length = 8;
@@ -217,10 +220,9 @@ void send_heartbeat( void ) {
 	msgTx.data[1] = state.yaw;
 	msgTx.data[2] = state.brightness;
 	msgTx.data[3] = 0;
-	msgTx.data[4] = (p >> 8) & 0xFF;
-	msgTx.data[5] = p & 0xFF;
-	msgTx.data[6] = (y >> 8) & 0xFF;
-	msgTx.data[7] = y & 0xFF;
+	msgTx.data[4] = (VERSION_MAJOR) & 0xFF;
+	msgTx.data[5] = (VERSION_MINOR) & 0xFF;
+
 
 	can_send_message( &msgTx );
 }
