@@ -22,8 +22,8 @@
 
 
 
-#define VERSION_MAJOR (0)
-#define VERSION_MINOR (3)
+#define VERSION_MAJOR (1)
+#define VERSION_MINOR (0)
 
 
 
@@ -100,7 +100,7 @@ int main( void ) {
 			if( state.servoPwmActive ) {
 				servo_disable();
 				state.servoPwmActive = 0;
-	//			bw_led_set( eNetworkLed, 0 );
+				bw_led_set( eNetworkLed, 0 );
 			}
 		}
 		else {
@@ -108,7 +108,7 @@ int main( void ) {
 				servo_enable();
 				state.servoPwmActive = 1;
 			}
-//			bw_led_set( eNetworkLed, 1 );
+			bw_led_set( eNetworkLed, 1 );
 			updateLampState();
 		}
 
