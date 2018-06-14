@@ -9,30 +9,23 @@
 extern config_t config;
 
 
-/*
-typedef struct servo_calibration {
-	uint16_t lowerLimit;
-	uint16_t upperLimit;
-} servo_t;
-servo_t servo_p, servo_y;
-*/
+
+static uint16_t buffer_OCR1A, buffer_OCR1B;
+
+
+
+ISR( TIMER1_OVF_vect ) {
+	OCR1A = buffer_OCR1A;
+	OCR1B = buffer_OCR1B;
+}
 
 
 
 void servo_init( void ) {
-/*
-	config.data.pMin = 0x0500;
-	config.data.pMax = 0x0F00;
-
-	config.data.yMin = 0x0370;
-	config.data.yMax = 0x10F0;
-*/
-	
-
 	servo_enable();
 
-	OCR1A = config.data.pMin + (config.data.pMax - config.data.pMin) / 2; // 1.5 ms is default
-	OCR1B = config.data.yMin + (config.data.yMax - config.data.yMin) / 2; // 1.5 ms is default
+	buffer_OCR1A = config.data.pMin + (config.data.pMax - config.data.pMin) / 2; // 1.5 ms is default
+	buffer_OCR1B = config.data.yMin + (config.data.yMax - config.data.yMin) / 2; // 1.5 ms is default
 }
 
 
@@ -56,14 +49,14 @@ void servo_calibrateLowerLimit( void ) {
 
 void servo_calibrateUpperLimit( void ) {
 	// make sure upper and lower limit are not inverted
-	if( OCR1A < config.data.pMin ) {
+	if( buffer_OCR1A < config.data.pMin ) {
 		config.data.pMax = config.data.pMin;
 	}
 	else {
 		config.data.pMax = OCR1A;
 	}
 
-	if( OCR1B < config.data.yMin ) {
+	if( buffer_OCR1B < config.data.yMin ) {
 		config.data.yMax = config.data.yMin;
 	}
 	else {
@@ -79,13 +72,13 @@ void servo_setValue( uint8_t servoId, uint8_t value ) {
 	switch( servoId ) {
 		case ePitch: {
 			range = config.data.pMax - config.data.pMin;
-			OCR1B = config.data.pMin + (((uint32_t)range * (uint32_t)value) / 0xff);
+			buffer_OCR1B = config.data.pMin + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
 		case eYaw: {
 			range = config.data.yMax - config.data.yMin;
-			OCR1A = config.data.yMin + (((uint32_t)range * (uint32_t)value) / 0xff);
+			buffer_OCR1A = config.data.yMin + (((uint32_t)range * (uint32_t)value) / 0xff);
 			break;
 		}
 
@@ -100,12 +93,12 @@ void servo_setValue( uint8_t servoId, uint8_t value ) {
 void servo_setRawValue( uint8_t servoId, uint16_t value ) {
 	switch( servoId ) {
 		case ePitch: {
-			OCR1B = value;
+			buffer_OCR1B = value;
 			break;
 		}
 
 		case eYaw: {
-			OCR1A = value;
+			buffer_OCR1A = value;
 			break;
 		}
 
@@ -147,9 +140,8 @@ void servo_enable( void ) {
 	DDRC  |= (1<<PC1); // OCR1B
 
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    TCCR1C = 0; // must be 0
-
-    TIMSK1 = (1<<FOC1A)|(1<<FOC1B);
+    TCCR1C = (1<<FOC1A) | (1<<FOC1B); // force output
+    TIMSK1 = (1<<TOIE1);
 
     // pwm output for servos (16 bit fast PWM)
     TCCR1A  = (1<<COM1A1); // pin goes high on reset and low on compare match
