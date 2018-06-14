@@ -242,7 +242,7 @@ void lamp_setBrightness( uint8_t brightness ) {
 void send_heartbeat( void ) {
 	can_t msgTx;
 
-	msgTx.id = eCanIdHeartbeat;
+	msgTx.id = eCanIdHeartbeat + ((config.data.hwId)<<4);
 	msgTx.length = 6;
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
@@ -254,7 +254,6 @@ void send_heartbeat( void ) {
 	msgTx.data[4] = (VERSION_MAJOR) & 0xFF;
 	msgTx.data[5] = (VERSION_MINOR) & 0xFF;
 
-
 	can_send_message( &msgTx );
 }
 
@@ -263,13 +262,12 @@ void send_heartbeat( void ) {
 void send_responseCode( uint8_t responseCode ) {
 	can_t msgTx;
 
-	msgTx.id = eCanIdResponse;
+	msgTx.id = eCanIdResponse + ((config.data.hwId)<<4);
 	msgTx.length = 1;
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
 
 	msgTx.data[0] = responseCode;
-
 
 	can_send_message( &msgTx );
 }
@@ -279,7 +277,7 @@ void send_responseCode( uint8_t responseCode ) {
 void send_config( void ) {
 	can_t msgTx;
 
-	msgTx.id = eCanIdSendConfig;
+	msgTx.id = eCanIdSendConfig + ((config.data.hwId)<<4);
 	msgTx.flags.rtr = 0;
 	msgTx.flags.extended = 0;
 
@@ -298,5 +296,4 @@ void send_config( void ) {
 	msgTx.data[6] = (config.data.yMax)>>8;
 	msgTx.data[7] = (config.data.yMax);
 	can_send_message( &msgTx );
-
 }
