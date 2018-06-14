@@ -24,43 +24,43 @@ ISR( TIMER1_OVF_vect ) {
 void servo_init( void ) {
 	servo_enable();
 
-	buffer_OCR1A = config.data.pMin + (config.data.pMax - config.data.pMin) / 2; // 1.5 ms is default
-	buffer_OCR1B = config.data.yMin + (config.data.yMax - config.data.yMin) / 2; // 1.5 ms is default
+	buffer_OCR1A = config.data.yMin + (config.data.yMax - config.data.yMin) / 2; // 1.5 ms is default
+	buffer_OCR1B = config.data.pMin + (config.data.pMax - config.data.pMin) / 2; // 1.5 ms is default
 }
 
 
 
 void servo_calibrateLowerLimit( void ) {
 	// make sure upper and lower limit are not inverted
-	if( OCR1A > config.data.pMax ) {
+	if( OCR1A > config.data.yMax ) {
+		config.data.yMin = config.data.pMax;
+	}
+	else {
+		config.data.yMin = OCR1A;
+	}
+
+	if( OCR1B > config.data.pMax ) {
 		config.data.pMin = config.data.pMax;
 	}
 	else {
-		config.data.pMin = OCR1A;
-	}
-
-	if( OCR1B > config.data.yMax ) {
-		config.data.yMin = config.data.yMax;
-	}
-	else {
-		config.data.yMin = OCR1B;
+		config.data.pMin = OCR1B;
 	}
 }
 
 void servo_calibrateUpperLimit( void ) {
 	// make sure upper and lower limit are not inverted
-	if( buffer_OCR1A < config.data.pMin ) {
-		config.data.pMax = config.data.pMin;
-	}
-	else {
-		config.data.pMax = OCR1A;
-	}
-
-	if( buffer_OCR1B < config.data.yMin ) {
+	if( buffer_OCR1A < config.data.yMin ) {
 		config.data.yMax = config.data.yMin;
 	}
 	else {
-		config.data.yMax = OCR1B;
+		config.data.yMax = OCR1A;
+	}
+
+	if( buffer_OCR1B < config.data.pMin ) {
+		config.data.pMax = config.data.pMin;
+	}
+	else {
+		config.data.pMax = OCR1B;
 	}
 }
 

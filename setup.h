@@ -2,7 +2,7 @@
 #define __setup_H__
 
 typedef enum {
-	eCanIdHeartbeat           = 0x0200,
+	eCanIdHeartbeat           = 0x0200, // TX
 	eCanIdSetPos              = 0x0201,
 	eCanIdCalibrateUpperLimit = 0x0202,
 	eCanIdCalibrateLowerLimit = 0x0203,
@@ -10,9 +10,9 @@ typedef enum {
 	eCanIdReset               = 0x0205,
 	eCanIdSetAddress          = 0x0206,
 	eCanIdStoreConfigEEPROM   = 0x0207,
-	eCanIdResponse            = 0x0208,
-	eCanIdSendConfig          = 0x0209,
-	eCanIdRequestConfig       = 0x020A,
+	eCanIdResponse            = 0x0208, // TX
+	eCanIdSendConfig          = 0x0209, // TX // UNUSED
+	eCanIdRequestConfig       = 0x020A, // TX
 	eCanIdEraseEEPROM         = 0x020C,
 	eCanIdSetBrightness       = 0x020D
 
