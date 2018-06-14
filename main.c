@@ -23,7 +23,7 @@
 
 
 #define VERSION_MAJOR (1)
-#define VERSION_MINOR (2)
+#define VERSION_MINOR (3)
 
 
 
@@ -111,8 +111,6 @@ int main( void ) {
 			bw_led_set( eNetworkLed, 1 );
 			updateLampState();
 		}
-
-
 	} // while(1)
 }
 
@@ -173,21 +171,16 @@ void can_parse_msgs( can_t *msgRx ) {
 			break;
 		}
 
-		case eCanIdSetPos: { // <pitch(8)><yaw(8)><brightness(8)>
+		case eCanIdSetPos: { // <pitch(8)><yaw(8)>
 			state.pitch      = msgRx->data[0];
 			state.yaw        = msgRx->data[1];
-			state.brightness = msgRx->data[2];
 
-			if( (state.lastPitch != state.pitch) ||
-				(state.lastYaw != state.yaw) ||
-				(state.lastBrightness != state.brightness)
-			) {
+			if( (state.lastPitch != state.pitch) ||	(state.lastYaw != state.yaw) ) {
 				state.lastChangedPosition = now;
 			}
 
 			state.lastPitch      = state.pitch;
 			state.lastYaw        = state.yaw;
-			state.lastBrightness = state.brightness;
 			send_responseCode( eCanIdSetPos & 0xFF );
 			break;
 		}
@@ -207,6 +200,14 @@ void can_parse_msgs( can_t *msgRx ) {
 		case eCanIdEraseEEPROM: {
 			eeprom_erase();
 			send_responseCode( eCanIdEraseEEPROM & 0xFF );
+			break;
+		}
+
+		case eCanIdSetBrightness: {
+			state.brightness = msgRx->data[0];
+			state.lastBrightness = state.brightness;
+			lamp_setBrightness( state.brightness );
+			send_responseCode( eCanIdSetBrightness & 0xFF );
 			break;
 		}
 

@@ -13,7 +13,8 @@ typedef enum {
 	eCanIdResponse            = 0x0208,
 	eCanIdSendConfig          = 0x0209,
 	eCanIdRequestConfig       = 0x020A,
-	eCanIdEraseEEPROM         = 0x020C
+	eCanIdEraseEEPROM         = 0x020C,
+	eCanIdSetBrightness       = 0x020D
 
 } canMsgs_e;
 
