@@ -23,7 +23,7 @@
 
 
 #define VERSION_MAJOR (1)
-#define VERSION_MINOR (4)
+#define VERSION_MINOR (5)
 
 
 
@@ -119,7 +119,7 @@ int main( void ) {
 void can_parse_msgs( can_t *msgRx ) {
 	uint32_t now;
 
-	uint16_t requestedId   = (msgRx->id & 0x02F0);
+	uint16_t requestedId   = (msgRx->id & 0x03F0);
 	uint16_t expectedId    = eCanIdHeartbeat + (config.data.hwId << 4);
 	uint16_t maskedCommand = (msgRx->id & 0x000F) | eCanIdHeartbeat;
 
