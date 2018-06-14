@@ -49,7 +49,7 @@ typedef enum {
 
 
 typedef enum {
-	eServoSleepDelay = 2000, // ms
+	eServoSleepDelay = 1000, // ms
 	eCanBaseAddress  = 0x200
 }
 delays_e;
