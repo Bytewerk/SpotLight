@@ -23,7 +23,7 @@
 
 
 #define VERSION_MAJOR (1)
-#define VERSION_MINOR (0)
+#define VERSION_MINOR (2)
 
 
 
@@ -201,6 +201,12 @@ void can_parse_msgs( can_t *msgRx ) {
 		case eCanIdRequestConfig: {
 			send_config();
 			send_responseCode( eCanIdRequestConfig & 0xFF );
+			break;
+		}
+
+		case eCanIdEraseEEPROM: {
+			eeprom_erase();
+			send_responseCode( eCanIdEraseEEPROM & 0xFF );
 			break;
 		}
 

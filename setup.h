@@ -12,7 +12,9 @@ typedef enum {
 	eCanIdStoreConfigEEPROM   = 0x0207,
 	eCanIdResponse            = 0x0208,
 	eCanIdSendConfig          = 0x0209,
-	eCanIdRequestConfig       = 0x020A
+	eCanIdRequestConfig       = 0x020A,
+	eCanIdEraseEEPROM         = 0x020C
+
 } canMsgs_e;
 
 
