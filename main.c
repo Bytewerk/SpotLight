@@ -23,7 +23,7 @@
 
 
 #define VERSION_MAJOR (1)
-#define VERSION_MINOR (5)
+#define VERSION_MINOR (6)
 
 
 
@@ -186,6 +186,12 @@ void can_parse_msgs( can_t *msgRx ) {
 			send_responseCode( eCanIdSetPos & 0xFF );
 			break;
 		}
+
+		case eCanIdResponse: {
+			// this is the response of another byteworker with the same ID
+			break;
+		}
+
 
 		case eCanIdStoreConfigEEPROM: {
 			eeprom_writeConfig();
