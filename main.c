@@ -23,7 +23,7 @@
 
 
 #define VERSION_MAJOR (1)
-#define VERSION_MINOR (3)
+#define VERSION_MINOR (4)
 
 
 
@@ -171,16 +171,18 @@ void can_parse_msgs( can_t *msgRx ) {
 			break;
 		}
 
-		case eCanIdSetPos: { // <pitch(8)><yaw(8)>
+		case eCanIdSetPos: { // <pitch(8)><yaw(8)><brightness(8)>
 			state.pitch      = msgRx->data[0];
 			state.yaw        = msgRx->data[1];
+			state.brightness = msgRx->data[2];
 
-			if( (state.lastPitch != state.pitch) ||	(state.lastYaw != state.yaw) ) {
+			if( (state.lastPitch != state.pitch) ||	(state.lastYaw != state.yaw) || (state.lastBrightness != state.brightness )) {
 				state.lastChangedPosition = now;
 			}
 
 			state.lastPitch      = state.pitch;
 			state.lastYaw        = state.yaw;
+			state.lastBrightness = state.brightness;
 			send_responseCode( eCanIdSetPos & 0xFF );
 			break;
 		}
